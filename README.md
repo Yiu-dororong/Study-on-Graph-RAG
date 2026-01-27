@@ -7,6 +7,7 @@ This repository mainly serves as a study record on Graph RAG and demonstration o
 RAG (Retrieval-Augmented Generation) has been a useful measure to extend LLM's capability to external knowledge base, such as specific or private domain and current information beyond model's knowledge cutoff. In 2024, Microsoft developped the idea of [Graph RAG](https://arxiv.org/abs/2404.16130) which is a new idea putting RAG into a graph structure connected by relationship of different entities, then grouped into communites and generated community summaries.
 
 *Chart from Microsoft's paper*
+
 <img width="712" height="427" alt="image" src="https://github.com/user-attachments/assets/d34062cd-b0d0-4b98-8d62-4f87378ed6f6" />
 
 ## Why Graph RAG?
