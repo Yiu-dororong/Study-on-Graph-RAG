@@ -48,16 +48,14 @@ Llamaindex has provided a its complete own end-to-end setup on [their website](h
 
 *Tips:* I found out that DoclingReader and DoclingNodeParser from llamaindex can easily exceed the context window of embedding model(usually 8192) even with the aid of HybirdChunker.
 
-Also, models definitely matters. If you have access to heacyweight LLM via API, you are advised to use it because building graph is computationally intensive and this is likely to happen with lightweight models.
+Also, models definitely matters. If you have access to heavyweight LLM via API, you are advised to use it because building graph is computationally intensive and this is likely to happen with lightweight models.
 <img width="1835" height="257" alt="image" src="https://github.com/user-attachments/assets/fcd8956e-7607-4c79-a4fa-55573fd8e569" />
 
-* Implementation
+First, we load the models from Ollama, set ```additional_kwargs={"num_gpu": -1}``` to fully use GPU to run the process. ```temperature = 0``` can also be set to stabilize output.
 
-First, we load the models from Ollama, set ```additional_kwargs={"num_gpu": -1}``` to fully use GPU to run the process. ```temperature=0``` can also be set to stabilize output.
+Second, we read the file(s) and then split into chunks. ```SentenceSplitter``` would do the job, but you can choose others like ```SemanticSplitterNodeParser```. However, I do not observe any huge differences.
 
-Second, we read the file(s) and then split into chunks. ```SentenceSplitter``` would do the job, but you can choose others like ```SemanticSplitterNodeParser```. However, I do not observe a great difference.
-
-Next, it would be the main process. To keep the code clean, I copy all the source code from Llamaindex into GraphRAG.py. What we do here is to use it extractor to build triplets (entity-relationship-entity) to contruct the knowledge graph, and then store it in the graph store along with index. We will also build communites that group similar nodes together using ```build_communities()``` from ```GraphRAGStore```. You can also use ```generate_community_summary(text)``` and ```_collect_community_info(nx_graph, clusters)``` to get more information.
+Next, it would be the main process. To keep the code clean, I copy all the source code from Llamaindex into ```GraphRAG.py```. What we do here is to use its extractor to build triplets (entity-relationship-entity) to contruct the knowledge graph, and then store it in the graph store along with indexes. We will also build communites that group similar nodes together using ```build_communities()``` from ```GraphRAGStore```.
 
 If you would want to visualize the knowledge graph, you can use the built-in method ```_create_nx_graph()``` as follow:
 
@@ -79,7 +77,7 @@ However, I believe you can simply view it in Neo4j. The result should be like th
 
 <img width="3294" height="1926" alt="bloom-visualisation" src="https://github.com/user-attachments/assets/517c0b76-3033-4776-96b8-d4664492847d" />
 
-If you take a closer look, it indeed captured quite well on different relationships. (The green nodes represent the work chunk.)
+If you take a closer look, it indeed captured quite well on different relationships. (Each green node represent a work chunk.)
 
 <img width="1076" height="781" alt="image" src="https://github.com/user-attachments/assets/906acdbd-1b4c-4ac5-87c8-8417d7b4ffd9" />
 
@@ -97,11 +95,11 @@ embed_model=embed_model,
 index.property_graph_store.build_communities()  
 ```
 
-It took me around 10 minutes to complete a short passage (6 pages of text). For a 20-page academic paper, it may take half an hour, and it may takes hours to complete 200-pages textbook. It is definitely resource intensive. For a larger scale, a [YouTube video](https://youtu.be/vX3A96_F3FU?si=Er50SdrkzVlxCRCc&t=885) has revealed that turning [A Christmas Carol](https://www.gutenberg.org/cache/epub/24022/pg24022.txt) (32k words, 105 pages) into a knowledge graph based on Microsoft's framework can spent up to 1 million tokens (GPT-4o model) which costs USD 7.12.
+It took me around 10 minutes to complete a short passage (6 pages of text). For a 20-page academic paper, it may take half an hour, and it may takes hours to complete 200-pages textbook. It is definitely resource intensive. For a larger scale, this [YouTube video](https://youtu.be/vX3A96_F3FU?si=Er50SdrkzVlxCRCc&t=885) has revealed that turning [A Christmas Carol](https://www.gutenberg.org/cache/epub/24022/pg24022.txt) (32k words, 105 pages) into a knowledge graph based on Microsoft's framework can spent up to 1 million tokens (GPT-4o model) which costs USD 7.12.
 
-Reusing graph by loading from Neo4j in Llamaindex tends to perform weaker than the first run, but you may use Cypher to explore. ```mistral-nemo``` model tends to be very "helpful" to adding its own knowledge to the query (and reduced the faithfulless), so please always specify that use the retrieval information only. Inference time is acceptable, consider giving fine-grained answers.
+Reusing graph by loading from Neo4j in Llamaindex tends to perform weaker than the first run, but you may use Cypher to explore. ```mistral-nemo``` model tends to be very "helpful" to adding its own knowledge to the query, so please always specify that use the retrieval information only. Inference time is acceptable, consider giving fine-grained answers.
 
-I did not calculate the recall for it, but if you want the source text, you may need:
+I did not calculate the recall for it, but if you want the source text, you can use:
 
 ```
 retriever = index.as_retriever(include_text=True)
@@ -121,7 +119,7 @@ index = VectorStoreIndex(nodes=nodes)
 query_engine = index.as_query_engine()
 ```
 
-This is just for demostration purpose, you can use other store like ChromaDB, Milvus or Neo4j.
+This is just for demostration purpose, you can use other stores like ChromaDB, Milvus or Neo4j.
 
 Here I tested some queries to how well they performs. 
 
@@ -179,7 +177,7 @@ Based solely on the provided summaries, here's how Germany shifted from initial 
 These factors, combined with the relentless pressure from Allied forces, contributed to Germany's ultimate defeat in World War II.
 </details>
 
-Graph RAG provide much more detailed answer compared to simple RAG. This is due to the fact that Graph RAG usually receive more context. However, not all information is from the original text like point 7, Warsaw uprising is not never mentioned, lowering its faithfulness.
+Graph RAG provide much more detailed answer compared to simple RAG. This is due to the fact that Graph RAG usually receive more context. However, not all information is from the original text like point 7, Warsaw uprising is never mentioned, lowering its faithfulness.
 
 ### Query 3 (Global linkage): Without using external knowledge, how did the failure of the League of Nations in Manchuria relate to Hitler’s later actions in Europe?
 
@@ -213,11 +211,11 @@ Based solely on the provided community summary, there is no explicit mention of 
 
 ## Conclusion
 
-It seems that Graph RAG barely won in my implementation, but make no mistake, this is only true for a short passage that simple RAG can capture the global context easily. For a clear comparison, please check [Microsoft's post](https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/).
+It seems that Graph RAG barely won in my implementation, but make no mistake, this is only true for a short passage like mine that simple RAG can capture the global context easily. For a clear comparison, please check [Microsoft's post](https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/).
 
-However, considering the huge cost difference compared to build the vector/graph store and querying, opting for Graph RAG is still uneasy. Indeed, [LangChain](https://reference.langchain.com/v0.3/python/neo4j/graphs/langchain_neo4j.graphs.graph_document.GraphDocument.html#langchain_neo4j.graphs.graph_document.GraphDocument) has a graph RAG plugin with Neo4J, but it is outdated already.
+However, considering the huge cost difference compared to build the vector/graph and querying, opting for Graph RAG is still not optimal. Indeed, [LangChain](https://reference.langchain.com/v0.3/python/neo4j/graphs/langchain_neo4j.graphs.graph_document.GraphDocument.html#langchain_neo4j.graphs.graph_document.GraphDocument) has a graph RAG plugin with Neo4J as well, but it is outdated already and I believe it gives similar result like Llamaindex.
 
-Simple RAG has made serveral improvements to refine the quality of search in recent years, such as MMR, BM25 and re-ranker, it can already give high-quality outputs. Graph RAG is making progress too, [LightRAG](https://github.com/HKUDS/LightRAG) adopted the idea of Graph RAG to maintain connections between entities. This greatly reduced the computations needed while still able to give satisfactory results. However, the set-up cost is still much higher than simple RAG. It claims that the LLM model needs to have at least 32 billion parameters.
+Simple RAG has made serveral improvements on the quality of search in recent years, such as MMR, BM25 and re-ranker, it can already give high-quality outputs with careful design of search method. Meanwhile, Graph RAG is making progress too, [LightRAG](https://github.com/HKUDS/LightRAG) adopted the idea of Graph RAG to capture major connections between entities from local and global levels. This greatly reduced the computations needed while still able to give satisfactory results. However, the set-up cost is still much higher than simple RAG. It recommends that the LLM model needs to have at least 32 billion parameters. Hence, Graph RAG remains a choice to improve quality with high marginal cost. Although contructing a knowledge graph may be impressive and useful, the costs of set-up, maintainence and query have to be acknowledged.
 
 
 
