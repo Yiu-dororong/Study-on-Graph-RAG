@@ -6,9 +6,9 @@ This repository mainly serves as a study record on Graph RAG and demonstration o
 
 RAG (Retrieval-Augmented Generation) has been a useful measure to extend LLM's capability to external knowledge base, such as specific or private domain and current information beyond model's knowledge cutoff. In 2024, Microsoft developped the idea of [Graph RAG](https://arxiv.org/abs/2404.16130) which is a new idea putting RAG into a graph structure connected by relationship of different entities, then grouped into communites and generated community summaries.
 
-*Chart from Microsoft's paper*
-
 <img width="712" height="427" alt="image" src="https://github.com/user-attachments/assets/d34062cd-b0d0-4b98-8d62-4f87378ed6f6" />
+
+*Chart from Microsoft's paper*
 
 ## Why Graph RAG?
 
@@ -60,7 +60,6 @@ Next, it would be the main process. To keep the code clean, I copy all the sourc
 If you would want to visualize the knowledge graph, you can use the built-in method ```_create_nx_graph()``` as follow:
 
 ```
-# Optional: plot the knowledge graph
 import matplotlib.pyplot as plt
 import networkx as nx
 
@@ -211,11 +210,9 @@ Based solely on the provided community summary, there is no explicit mention of 
 
 ## Conclusion
 
-It seems that Graph RAG barely won in my implementation, but make no mistake, this is only true for a short passage like mine that simple RAG can capture the global context easily. For a clear comparison, please check [Microsoft's post](https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/).
+It seems that Graph RAG barely won in my implementation, but make no mistake, this is only true for a short passage like mine that simple RAG can capture the global context easily. For a clear comparison, please check [Microsoft's post](https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/), or [the notebook done by Alex Lucek](https://github.com/ALucek/GraphRAG-Breakdown/blob/main/graph_examples.ipynb). These shall be enough to serve as references as I did not run my setup in Microsoft's GraphRAG. I expect better result but longer construction time caused by the lengthy prompt template. Indeed, [LangChain](https://reference.langchain.com/v0.3/python/neo4j/graphs/langchain_neo4j.graphs.graph_document.GraphDocument.html#langchain_neo4j.graphs.graph_document.GraphDocument) has a graph RAG plugin with Neo4J as well, but it is outdated already and I believe it gives similar result like LlamaIndex. However, considering the huge cost difference compared to build the vector/graph and querying, opting for Graph RAG is still not optimal even with the outstanding performance provided by Microsoft. It should be noted that even Microsoft warned that "GraphRAG can consume a lot of LLM resources".
 
-However, considering the huge cost difference compared to build the vector/graph and querying, opting for Graph RAG is still not optimal. Indeed, [LangChain](https://reference.langchain.com/v0.3/python/neo4j/graphs/langchain_neo4j.graphs.graph_document.GraphDocument.html#langchain_neo4j.graphs.graph_document.GraphDocument) has a graph RAG plugin with Neo4J as well, but it is outdated already and I believe it gives similar result like LlamaIndex.
-
-Simple RAG has made serveral improvements on the quality of search in recent years, such as MMR, BM25 and re-ranker, it can already give high-quality outputs with careful design of search method. Meanwhile, Graph RAG is making progress too, [LightRAG](https://github.com/HKUDS/LightRAG) adopted the idea of Graph RAG to capture major connections between entities from local and global levels. This greatly reduced the computations needed while still able to give satisfactory results. However, the set-up cost is still much higher than simple RAG. It recommends that the LLM model needs to have at least 32 billion parameters. Hence, Graph RAG remains a choice to improve quality with high marginal cost. Although contructing a knowledge graph may be impressive and useful, the costs of set-up, maintainence and query have to be acknowledged.
+Simple RAG has made serveral improvements on the quality of search in recent years, such as MMR, BM25 and re-ranker, it can already give high-quality outputs with careful design of search method. Meanwhile, Graph RAG is making progress too, [LightRAG](https://github.com/HKUDS/LightRAG) adopted the idea of Graph RAG to capture major connections between entities from local and global levels. This greatly reduced the computations needed while still able to give satisfactory results. However, the set-up cost is still much higher than simple RAG. It recommends that the LLM model needs to have at least 32 billion parameters. Hence, Graph RAG remains a choice to improve quality with high marginal cost. Although constructing a knowledge graph may be impressive and useful, the costs of set-up, maintainence and query have to be recognized.
 
 
 
