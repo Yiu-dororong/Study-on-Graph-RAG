@@ -1,3 +1,4 @@
+# Source: https://developers.llamaindex.ai/python/examples/cookbooks/graphrag_v2/
 import asyncio
 import nest_asyncio
 
@@ -454,4 +455,5 @@ For each pair of related entities, extract the following information:
 ######################
 text: {text}
 ######################
+
 output:"""
