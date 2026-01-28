@@ -28,7 +28,7 @@ When the word "knowledge graph" comes to me, my first intuition is that it can v
 
 ## Setup
 
-* Platform: Llamaindex
+* Platform: LlamaIndex
 
 * Models: Ollama (mistral-nemo for LLM, nomic-embed-text for embedding)
 
@@ -44,9 +44,9 @@ The idea is to create a graph database by user itself, so I would use a small-sc
 
 * Graph RAG
 
-Llamaindex has provided a its complete own end-to-end setup on [their website](https://developers.llamaindex.ai/python/examples/cookbooks/graphrag_v2/). Please note that you need docker to set up local Neo4j. You may also read the [notebook written by tuhinsharma121](https://github.com/tuhinsharma121/ai-playground/blob/main/rag/graphrag/llamaindex-graphrag/graphrag-llamaindex-relationship-summary.ipynb), which is basically the same thing.
+LlamaIndex has provided a its complete own end-to-end setup on [their website](https://developers.llamaindex.ai/python/examples/cookbooks/graphrag_v2/). Please note that you need docker to set up local Neo4j. You may also read the [notebook written by tuhinsharma121](https://github.com/tuhinsharma121/ai-playground/blob/main/rag/graphrag/llamaindex-graphrag/graphrag-llamaindex-relationship-summary.ipynb), which is basically the same thing.
 
-*Tips:* I found out that DoclingReader and DoclingNodeParser from llamaindex can easily exceed the context window of embedding model(usually 8192) even with the aid of HybirdChunker.
+*Tips:* I found out that DoclingReader and DoclingNodeParser from LlamaIndex can easily exceed the context window of embedding model(usually 8192) even with the aid of HybirdChunker.
 
 Also, models definitely matters. If you have access to heavyweight LLM via API, you are advised to use it because building graph is computationally intensive and this is likely to happen with lightweight models.
 <img width="1835" height="257" alt="image" src="https://github.com/user-attachments/assets/fcd8956e-7607-4c79-a4fa-55573fd8e569" />
@@ -55,7 +55,7 @@ First, we load the models from Ollama, set ```additional_kwargs={"num_gpu": -1}`
 
 Second, we read the file(s) and then split into chunks. ```SentenceSplitter``` would do the job, but you can choose others like ```SemanticSplitterNodeParser```. However, I do not observe any huge differences.
 
-Next, it would be the main process. To keep the code clean, I copy all the source code from Llamaindex into ```GraphRAG.py```. What we do here is to use its extractor to build triplets (entity-relationship-entity) to contruct the knowledge graph, and then store it in the graph store along with indexes. We will also build communites that group similar nodes together using ```build_communities()``` from ```GraphRAGStore```.
+Next, it would be the main process. To keep the code clean, I copy all the source code from LlamaIndex into ```GraphRAG.py```. What we do here is to use its extractor to build triplets (entity-relationship-entity) to contruct the knowledge graph, and then store it in the graph store along with indexes. We will also build communites that group similar nodes together using ```build_communities()``` from ```GraphRAGStore```.
 
 If you would want to visualize the knowledge graph, you can use the built-in method ```_create_nx_graph()``` as follow:
 
@@ -97,7 +97,7 @@ index.property_graph_store.build_communities()
 
 It took me around 10 minutes to complete a short passage (6 pages of text). For a 20-page academic paper, it may take half an hour, and it may takes hours to complete 200-pages textbook. It is definitely resource intensive. For a larger scale, this [YouTube video](https://youtu.be/vX3A96_F3FU?si=Er50SdrkzVlxCRCc&t=885) has revealed that turning [A Christmas Carol](https://www.gutenberg.org/cache/epub/24022/pg24022.txt) (32k words, 105 pages) into a knowledge graph based on Microsoft's framework can spent up to 1 million tokens (GPT-4o model) which costs USD 7.12.
 
-Reusing graph by loading from Neo4j in Llamaindex tends to perform weaker than the first run, but you may use Cypher to explore. ```mistral-nemo``` model tends to be very "helpful" to adding its own knowledge to the query, so please always specify that use the retrieval information only. Inference time is acceptable, consider giving fine-grained answers.
+Reusing graph by loading from Neo4j in LlamaIndex tends to perform weaker than the first run, but you may use Cypher to explore. ```mistral-nemo``` model tends to be very "helpful" to adding its own knowledge to the query, so please always specify that use the retrieval information only. Inference time is acceptable, consider giving fine-grained answers.
 
 I did not calculate the recall for it, but if you want the source text, you can use:
 
@@ -110,7 +110,7 @@ Overall, more than half of the query can answer correctly with accurate details,
 
 * Simple RAG
 
-Now, I will implement a simple RAG using Llamaindex again, using the same settings (models, splitter and so on). Only few lines of code are needed.
+Now, I will implement a simple RAG using LlamaIndex again, using the same settings (models, splitter and so on). Only few lines of code are needed.
 
 ```
 from llama_index.core import VectorStoreIndex
@@ -213,7 +213,7 @@ Based solely on the provided community summary, there is no explicit mention of 
 
 It seems that Graph RAG barely won in my implementation, but make no mistake, this is only true for a short passage like mine that simple RAG can capture the global context easily. For a clear comparison, please check [Microsoft's post](https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/).
 
-However, considering the huge cost difference compared to build the vector/graph and querying, opting for Graph RAG is still not optimal. Indeed, [LangChain](https://reference.langchain.com/v0.3/python/neo4j/graphs/langchain_neo4j.graphs.graph_document.GraphDocument.html#langchain_neo4j.graphs.graph_document.GraphDocument) has a graph RAG plugin with Neo4J as well, but it is outdated already and I believe it gives similar result like Llamaindex.
+However, considering the huge cost difference compared to build the vector/graph and querying, opting for Graph RAG is still not optimal. Indeed, [LangChain](https://reference.langchain.com/v0.3/python/neo4j/graphs/langchain_neo4j.graphs.graph_document.GraphDocument.html#langchain_neo4j.graphs.graph_document.GraphDocument) has a graph RAG plugin with Neo4J as well, but it is outdated already and I believe it gives similar result like LlamaIndex.
 
 Simple RAG has made serveral improvements on the quality of search in recent years, such as MMR, BM25 and re-ranker, it can already give high-quality outputs with careful design of search method. Meanwhile, Graph RAG is making progress too, [LightRAG](https://github.com/HKUDS/LightRAG) adopted the idea of Graph RAG to capture major connections between entities from local and global levels. This greatly reduced the computations needed while still able to give satisfactory results. However, the set-up cost is still much higher than simple RAG. It recommends that the LLM model needs to have at least 32 billion parameters. Hence, Graph RAG remains a choice to improve quality with high marginal cost. Although contructing a knowledge graph may be impressive and useful, the costs of set-up, maintainence and query have to be acknowledged.
 
