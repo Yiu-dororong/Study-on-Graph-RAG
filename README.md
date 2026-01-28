@@ -28,7 +28,7 @@ When the word "knowledge graph" comes to me, my first intuition is that it can v
 
 ## Setup
 
-* Platform: Llamaindex, langchain, Microsoft
+* Platform: Llamaindex
 
 * Models: Ollama (mistral-nemo for LLM, nomic-embed-text for embedding)
 
@@ -42,7 +42,7 @@ The idea is to create a graph database by user itself, so I would use a small-sc
 
 ## Process
 
-* Llamaindex
+* Graph RAG
 
 Llamaindex has provided a its complete own end-to-end setup on [their website](https://developers.llamaindex.ai/python/examples/cookbooks/graphrag_v2/). Please note that you need docker to set up local Neo4j. You may also read the [notebook written by tuhinsharma121](https://github.com/tuhinsharma121/ai-playground/blob/main/rag/graphrag/llamaindex-graphrag/graphrag-llamaindex-relationship-summary.ipynb), which is basically the same thing.
 
@@ -110,21 +110,45 @@ nodes = retriever.retrieve(query)
 
 Overall, more than half of the query can answer correctly with accurate details, but it sometimes would tell me that the summaries did not mention when the keywords are explictly in the original text. I would not this is a huge improvement correspond to traditional RAG.
 
-https://github.com/ALucek/rag-reranking/blob/main/reranking.ipynb
+* Simple RAG
 
+Now, I will implement a simple RAG using Llamaindex again, using the same settings (models, splitter and so on). Only few lines of code are needed.
 
+```
+from llama_index.core import VectorStoreIndex
 
+index = VectorStoreIndex(nodes=nodes)
+query_engine = index.as_query_engine()
+```
 
+This is just for demostration purpose, you can use other store like ChromaDB, Milvus or Neo4j.
 
-Here I tested some queries to how well it performs. -- CSV
+Here I tested some queries to how well they performs. 
 
-Query 1: Without using external knowledge, what were the names of the atomic bombs dropped in 1945, and which specific aircraft delivered the first one?
+### Query 1 (Local): Without using external knowledge, what were the names of the atomic bombs dropped in 1945, and which specific aircraft delivered the first one?
 
-Response: The atomic bombs dropped in 1945 were named "Little Boy" and "Fat Man", delivered by a B-29 bomber named "Enola Gay".
+<details>
+<summary> Simple RAG </summary>
+The atomic bombs dropped on Hiroshima and Nagasaki in 1945 were named "Little Boy" and "Fat Man," respectively. The B-29 bomber Enola Gay delivered the first bomb, Little Boy, over Hiroshima on August 6, 1945.
+</details>
 
-Query 2: Without using external knowledge, how did Germany change the tide from winning to losing?  
+<details>
+<summary> Graph RAG </summary>
+The atomic bombs dropped in 1945 were named "Little Boy" and "Fat Man", delivered by a B-29 bomber named "Enola Gay".
+</details>
 
-Response : Based solely on the provided summaries, here's how Germany shifted from initial successes to ultimate losses in World War II:
+Both of them gave the correct answer.
+
+### Query 2 (Global summary): Without using external knowledge, how did Germany change the tide from winning to losing?  
+
+<details>
+<summary> Simple RAG </summary>
+Germany's fortunes changed dramatically when they failed to achieve a decisive victory in Russia. The Battle of Stalingrad was a turning point; despite initial success, Hitler's refusal to allow retreat led to the destruction of the entire Sixth Army. This loss opened up an opportunity for Allied advancements in both the Eastern and Western Fronts, ultimately leading to Germany's defeat.
+</details>
+
+<details>
+<summary> Graph RAG </summary>
+Based solely on the provided summaries, here's how Germany shifted from initial successes to ultimate losses in World War II:
 
 1. **Overreach and Strategic Missteps:**
    - Hitler initiated several offensive campaigns as desperate attempts to reverse his fortunes:
@@ -153,31 +177,47 @@ Response : Based solely on the provided summaries, here's how Germany shifted fr
 7. **Warsaw Uprising (1944) and other partisan activities:** These resistance efforts tie down German forces, diverting resources away from other fronts.
 
 These factors, combined with the relentless pressure from Allied forces, contributed to Germany's ultimate defeat in World War II.
+</details>
 
-Query 3: Without using external knowledge, how did the failure of the League of Nations in Manchuria relate to Hitler’s later actions in Europe?
+Graph RAG provide much more detailed answer compared to simple RAG. This is due to the fact that Graph RAG usually receive more context. However, not all information is from the original text like point 7, Warsaw uprising is not never mentioned, lowering its faithfulness.
 
-Response: Based on the information provided across multiple summaries, here's a concise response:
+### Query 3 (Global linkage): Without using external knowledge, how did the failure of the League of Nations in Manchuria relate to Hitler’s later actions in Europe?
+
+<details>
+<summary> Simple RAG </summary>
+The failure of the League of Nations to effectively respond to Japan's invasion of Manchuria in 1931 demonstrated the limitations of international collective security. This incident highlighted that appeasement policies and lack of decisive action by global powers could embolden aggressive nations like Germany, led by Hitler later on in Europe.
+</details>
+
+<details>
+<summary> Graph RAG </summary>
+Based on the information provided across multiple summaries, here's a concise response:
 
 1. **Direct Relation (without external knowledge)**: The failure of the League of Nations to effectively address Japan's invasion of Manchuria might have encouraged Adolf Hitler's aggressive actions in Europe by signaling limited consequences for aggressive expansion and emboldening an expansionist mindset among leaders.
 
 2. **Indirect Relation**: Some summaries suggest that the League's powerlessness to stop Germany's aggression in Manchuria could have encouraged Hitler to continue his aggressive policies in Europe, with Neville Chamberlain's appeasement policy also reflecting the League's ineffectiveness.
 
 3. **No Direct Relation**: Most summaries do not directly relate the failure of the League of Nations in Manchuria to Hitler’s later actions in Europe due to lack of explicit mention or implication.
+</details>
 
+Graph RAG indeed gave the same answer as simple RAG, but with more noises from the huge amount of communities summaries.
 
+Please note that Graph RAG sometimes fails to answer like this:
 
-
-
-
+```
 Based solely on the provided community summaries, there is no mention of a "Scorched Earth" policy in relation to any operations launched on June 22, 1941 by Germany, Japan, or other powers involved in World War II.
+```
 
+```
 Based solely on the provided community summary, there is no explicit mention of a direct connection or relationship between the failure of the League of Nations in Manchuria and Hitler's later actions in Europe.
+```
 
+## Conclusion
 
+It seems that Graph RAG barely won in my implementation, but make no mistake, this is only true for a short passage that simple RAG can capture the global context easily. For a clear comparison, please check [Microsoft's post](https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/).
 
-https://reference.langchain.com/v0.3/python/neo4j/graphs/langchain_neo4j.graphs.graph_document.GraphDocument.html#langchain_neo4j.graphs.graph_document.GraphDocument
+However, considering the huge cost difference compared to build the vector/graph store and querying, opting for Graph RAG is still uneasy. Indeed, [LangChain](https://reference.langchain.com/v0.3/python/neo4j/graphs/langchain_neo4j.graphs.graph_document.GraphDocument.html#langchain_neo4j.graphs.graph_document.GraphDocument) has a graph RAG plugin with Neo4J, but it is outdated already.
 
-
+Simple RAG has made serveral improvements to refine the quality of search in recent years, such as MMR, BM25 and re-ranker, it can already give high-quality outputs. Graph RAG is making progress too, [LightRAG](https://github.com/HKUDS/LightRAG) adopted the idea of Graph RAG to maintain connections between entities. This greatly reduced the computations needed while still able to give satisfactory results. However, the set-up cost is still much higher than simple RAG. It claims that the LLM model needs to have at least 32 billion parameters.
 
 
 
