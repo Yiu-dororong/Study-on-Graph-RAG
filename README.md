@@ -48,7 +48,7 @@ LlamaIndex has provided a its complete own end-to-end setup on [their website](h
 
 *Tips:* I found out that DoclingReader and DoclingNodeParser from LlamaIndex can easily exceed the context window of embedding model(usually 8192) even with the aid of HybirdChunker.
 
-Also, models definitely matters. If you have access to heavyweight LLM via API, you are advised to use it because building graph is computationally intensive and this is likely to happen with lightweight models.
+Also, models definitely matters. If you have access to heavyweight LLM via API, you are advised to use it because building graph is computationally intensive and this is likely to happen with lightweight models. You may need to restrict the ```format``` parameter of the model by using pydantic or specifying json.
 <img width="1835" height="257" alt="image" src="https://github.com/user-attachments/assets/fcd8956e-7607-4c79-a4fa-55573fd8e569" />
 
 First, we load the models from Ollama, set ```additional_kwargs={"num_gpu": -1}``` to fully use GPU to run the process. ```temperature = 0``` can also be set to stabilize output.
